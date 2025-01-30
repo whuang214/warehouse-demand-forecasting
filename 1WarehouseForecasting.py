@@ -429,7 +429,7 @@ def run_seasonality_only_regression(
     """
     Creates monthly dummies without a trend: Demand ~ month_dummies
     Forecasts test set and future_steps.
-    Plots test and future forecasts with trend lines across entire dataset
+    Plots test and future forecasts with trend lines across entire dataset.
     """
     # ============================
     # Forecast Test Set
@@ -447,10 +447,7 @@ def run_seasonality_only_regression(
 
     # Prepare future for test set
     future_df_test = pd.DataFrame(
-        {
-            "Date": test_index,
-            "month": test_index.month.astype("category"),
-        }
+        {"Date": test_index, "month": test_index.month.astype("category")}
     )
     future_df_test_dummies = pd.get_dummies(
         future_df_test, columns=["month"], drop_first=True
@@ -509,7 +506,7 @@ def run_seasonality_only_regression(
         color="red",
         linestyle="--",
     )
-    plt.title("Seasonality Only Regression Forecast - Test Set")
+    plt.title("Seasonality Only Regression - Test Set Forecast")
     plt.xlabel("Date")
     plt.ylabel("Demand")
     plt.legend()
@@ -586,7 +583,7 @@ def run_seasonality_only_regression(
         color="green",
         marker="o",
     )
-    plt.title("Seasonality Only Regression Forecast - 6 Months Future")
+    plt.title("Seasonality Only Regression - 6 Months Future Forecast")
     plt.xlabel("Date")
     plt.ylabel("Demand")
     plt.legend()
@@ -684,7 +681,7 @@ def run_seasonal_regression(
         color="red",
         linestyle="--",
     )
-    plt.title("Seasonal Regression (Monthly Dummies) Forecast - Test Set")
+    plt.title("Seasonality + Trend Regression Forecast - Test Set")
     plt.xlabel("Date")
     plt.ylabel("Demand")
     plt.legend()
@@ -756,11 +753,11 @@ def run_seasonal_regression(
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
-        label="Forecast (Seasonal Regression - Future)",
+        label="Forecast (Seasonal + Trend Regression- Future)",
         color="green",
         marker="o",
     )
-    plt.title("Seasonal Regression (Monthly Dummies) Forecast - 6 Months Future")
+    plt.title("Seasonality + Trend Regression - 6 Months Future Forecast")
     plt.xlabel("Date")
     plt.ylabel("Demand")
     plt.legend()
