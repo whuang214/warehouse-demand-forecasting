@@ -32,9 +32,9 @@ def run_linear_regression(train_data, test_data, test_index, full_data, future_s
     """
     1) Fit Linear Regression on train_data: Demand ~ t
     2) Forecast test set
-    3) Print metrics and plot test forecast
+    3) Print metrics and plot test forecast with trend line across entire train + test data
     4) Fit on full_data and forecast future_steps
-    5) Plot entire timeline with future forecast
+    5) Plot entire timeline with trend line and future forecast
     """
     # ============================
     # Forecast Test Set
@@ -65,15 +65,29 @@ def run_linear_regression(train_data, test_data, test_index, full_data, future_s
     print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
+    # Predict on train data for trend line
+    fitted_train = model.predict(df_reg)
+
+    # Predict on test data for trend line
+    fitted_test = model.predict(df_future_test)
+
+    # Combine train and test fitted values
+    fitted_full = pd.concat(
+        [
+            pd.Series(fitted_train.values, index=train_data.index),
+            pd.Series(fitted_test.values, index=test_data.index),
+        ]
+    )
+
     plt.figure(figsize=(12, 6))
     plt.plot(train_data.index, train_data.values, label="Train", color="blue")
     plt.plot(test_data.index, test_data.values, label="Test", color="orange")
     plt.plot(
-        test_index,
-        forecast_series_test.values,
-        label="Forecast (Linear - Test)",
+        fitted_full.index,
+        fitted_full.values,
+        label="Fitted Trend",
         color="red",
         linestyle="--",
     )
@@ -105,10 +119,20 @@ def run_linear_regression(train_data, test_data, test_index, full_data, future_s
     forecast_series_future = pd.Series(forecast_vals_future.values, index=future_dates)
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
+    # Predict on full data for trend line
+    fitted_full_data = model_full.predict(df_full)
+
     plt.figure(figsize=(12, 6))
     plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        full_data.index,
+        fitted_full_data.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
@@ -132,7 +156,7 @@ def run_exponential_regression(
     """
     Fit Exponential Regression: log(Demand) ~ t
     Forecast test set and future_steps
-    Plot test and future forecasts
+    Plot test and future forecasts with trend lines across entire dataset
     """
     # ============================
     # Forecast Test Set
@@ -172,15 +196,29 @@ def run_exponential_regression(
     print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
+    # Predict on train data for trend line
+    fitted_train = np.exp(model.predict(df_reg))
+
+    # Predict on test data for trend line
+    fitted_test = np.exp(model.predict(df_future_test))
+
+    # Combine train and test fitted values
+    fitted_full = pd.concat(
+        [
+            pd.Series(fitted_train.values, index=train_positive.index),
+            pd.Series(fitted_test.values, index=test_data.index),
+        ]
+    )
+
     plt.figure(figsize=(12, 6))
-    plt.plot(train_data.index, train_data.values, label="Train", color="blue")
+    plt.plot(train_positive.index, train_positive.values, label="Train", color="blue")
     plt.plot(test_data.index, test_data.values, label="Test", color="orange")
     plt.plot(
-        test_index,
-        forecast_series_test.values,
-        label="Forecast (Exponential - Test)",
+        fitted_full.index,
+        fitted_full.values,
+        label="Fitted Trend",
         color="red",
         linestyle="--",
     )
@@ -223,10 +261,25 @@ def run_exponential_regression(
     forecast_series_future = pd.Series(pred_exp_future.values, index=future_dates)
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
+    # Predict on full data for trend line
+    fitted_full_data = np.exp(model_full.predict(df_full))
+
     plt.figure(figsize=(12, 6))
-    plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        full_positive.index,
+        full_positive.values,
+        label="Historical Demand",
+        color="blue",
+    )
+    plt.plot(
+        full_positive.index,
+        fitted_full_data.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
@@ -250,7 +303,7 @@ def run_polynomial_regression(
     """
     Fit a 2nd-degree polynomial: Demand ~ t + t^2
     Forecast test set and future_steps
-    Plot test and future forecasts
+    Plot test and future forecasts with trend lines across entire dataset
     """
     # ============================
     # Forecast Test Set
@@ -283,15 +336,29 @@ def run_polynomial_regression(
     print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
+    # Predict on train data for trend line
+    fitted_train = model.predict(df_reg)
+
+    # Predict on test data for trend line
+    fitted_test = model.predict(df_future_test)
+
+    # Combine train and test fitted values
+    fitted_full = pd.concat(
+        [
+            pd.Series(fitted_train.values, index=train_data.index),
+            pd.Series(fitted_test.values, index=test_data.index),
+        ]
+    )
+
     plt.figure(figsize=(12, 6))
     plt.plot(train_data.index, train_data.values, label="Train", color="blue")
     plt.plot(test_data.index, test_data.values, label="Test", color="orange")
     plt.plot(
-        test_index,
-        forecast_series_test.values,
-        label="Forecast (Polynomial - Test)",
+        fitted_full.index,
+        fitted_full.values,
+        label="Fitted Trend",
         color="red",
         linestyle="--",
     )
@@ -309,8 +376,6 @@ def run_polynomial_regression(
     df_full = full_data.reset_index().copy()
     df_full["t"] = np.arange(1, len(df_full) + 1)
     df_full["t2"] = df_full["t"] ** 2
-
-    # Fit model
     model_full = smf.ols("Demand ~ t + t2", data=df_full).fit()
 
     # Prepare future for forecasting beyond dataset
@@ -327,10 +392,20 @@ def run_polynomial_regression(
     forecast_series_future = pd.Series(forecast_vals_future.values, index=future_dates)
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
+    # Predict on full data for trend line
+    fitted_full_data = model_full.predict(df_full)
+
     plt.figure(figsize=(12, 6))
     plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        full_data.index,
+        fitted_full_data.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
@@ -354,7 +429,7 @@ def run_seasonal_regression(
     """
     Creates monthly dummies + linear trend: Demand ~ t + month_dummies
     Forecasts test set and future_steps.
-    Plots test and future forecasts separately.
+    Plots test and future forecasts with trend lines across entire dataset
     """
     # ============================
     # Forecast Test Set
@@ -410,15 +485,29 @@ def run_seasonal_regression(
     print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
+    # Predict on train data for trend line
+    fitted_train = model.predict(df_reg_dummies)
+
+    # Predict on test data for trend line
+    fitted_test = model.predict(future_df_test_dummies)
+
+    # Combine train and test fitted values
+    fitted_full = pd.concat(
+        [
+            pd.Series(fitted_train.values, index=train_data.index),
+            pd.Series(fitted_test.values, index=test_data.index),
+        ]
+    )
+
     plt.figure(figsize=(12, 6))
     plt.plot(train_data.index, train_data.values, label="Train", color="blue")
     plt.plot(test_data.index, test_data.values, label="Test", color="orange")
     plt.plot(
-        test_index,
-        forecast_series_test.values,
-        label="Forecast (Seasonal Regression - Test)",
+        fitted_full.index,
+        fitted_full.values,
+        label="Fitted Trend",
         color="red",
         linestyle="--",
     )
@@ -477,10 +566,20 @@ def run_seasonal_regression(
     )  # Corrected Index
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
+    # Predict on full data for trend line
+    fitted_full_data = model.predict(df_full_dummies)
+
     plt.figure(figsize=(12, 6))
     plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        full_data.index,
+        fitted_full_data.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
@@ -501,7 +600,150 @@ def run_seasonal_regression(
 def run_sarima(train_data, test_data, test_index, full_data, future_steps=6):
     """
     Fit a SARIMA(1,1,1)(1,1,1,12) model, forecast test set and future_steps.
-    Plot test and future forecasts.
+    Plot test and future forecasts with trend lines across entire dataset.
+    """
+    # ============================
+    # Forecast Test Set
+    # ============================
+    try:
+        # Fit SARIMA model on training data
+        model = SARIMAX(
+            train_data,
+            order=(1, 1, 1),
+            seasonal_order=(1, 1, 1, 12),
+            enforce_stationarity=False,
+            enforce_invertibility=False,
+        )
+        results = model.fit(disp=False)
+
+        # Get in-sample fitted values for training data
+        fitted_train = results.fittedvalues
+        # drop first entry
+        fitted_train = results.fittedvalues.iloc[1:]
+
+        # Forecast for the test set
+        forecast_vals_test = results.forecast(steps=len(test_data))
+        forecast_series_test = pd.Series(forecast_vals_test.values, index=test_index)
+
+        # Combine fitted_train and forecast_series_test for a continuous trend line
+        fitted_full_test = pd.concat([fitted_train, forecast_series_test])
+
+        # Compute accuracy metrics for the test set
+        metrics_test = forecast_accuracy_metrics(
+            test_data.values, forecast_series_test.values
+        )
+
+        print("=== SARIMA (1,1,1)(1,1,1,12) ===")
+        print("Forecasting Test Set:")
+        print(f"MAE:  {metrics_test['MAE']:.2f}")
+        print(f"RMSE: {metrics_test['RMSE']:.2f}")
+        print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
+    except Exception as e:
+        print("=== SARIMA (1,1,1)(1,1,1,12) ===")
+        print("SARIMA failed during test set forecasting:", e, "\n")
+        forecast_series_test = pd.Series([np.nan] * len(test_data), index=test_index)
+        metrics_test = {"MAE": np.nan, "RMSE": np.nan, "MAPE": np.nan}
+        fitted_full_test = pd.Series(
+            [np.nan] * len(train_data) + [np.nan] * len(test_data),
+            index=train_data.index.append(test_data.index),
+        )
+
+    # ============================
+    # Plot Test Set Forecast with Trend Line
+    # ============================
+    plt.figure(figsize=(12, 6))
+    plt.plot(train_data.index, train_data.values, label="Train", color="blue")
+    plt.plot(test_data.index, test_data.values, label="Test", color="orange")
+    plt.plot(
+        fitted_full_test.index,
+        fitted_full_test.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
+    plt.title("SARIMA Forecast - Test Set")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # ============================
+    # Forecast Future Set
+    # ============================
+    try:
+        # Refit SARIMA model on the entire dataset (train + test)
+        model_full = SARIMAX(
+            full_data,
+            order=(1, 1, 1),
+            seasonal_order=(1, 1, 1, 12),
+            enforce_stationarity=False,
+            enforce_invertibility=False,
+        )
+        results_full = model_full.fit(disp=False)
+
+        # Get fitted values for the entire historical data
+        fitted_full_data = results_full.fittedvalues
+
+        # Forecast future_steps ahead
+        forecast_vals_future = results_full.forecast(steps=future_steps)
+        future_dates = pd.date_range(
+            full_data.index[-1] + pd.offsets.MonthEnd(1), periods=future_steps, freq="M"
+        )
+        forecast_series_future = pd.Series(
+            forecast_vals_future.values, index=future_dates
+        )
+    except Exception as e:
+        print("SARIMA failed during future forecasting:", e)
+        forecast_series_future = pd.Series(
+            [np.nan] * future_steps,
+            index=pd.date_range(
+                full_data.index[-1] + pd.offsets.MonthEnd(1),
+                periods=future_steps,
+                freq="M",
+            ),
+        )
+        fitted_full_data = pd.Series([np.nan] * len(full_data), index=full_data.index)
+
+    # ============================
+    # Plot Future Forecast with Trend Line
+    # ============================
+    plt.figure(figsize=(12, 6))
+    plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+
+    # Plot fitted trend line over historical data
+    plt.plot(
+        fitted_full_test.index[fitted_full_test.index >= train_data.index[0]],
+        fitted_full_test[fitted_full_test.index >= train_data.index[0]],
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
+
+    # Plot future forecast
+    plt.plot(
+        forecast_series_future.index,
+        forecast_series_future.values,
+        label="Forecast (SARIMA - Future)",
+        color="green",
+        marker="o",
+    )
+    plt.title("SARIMA Forecast - 6 Months Future")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return (
+        results_full if "results_full" in locals() else None,
+        metrics_test,
+        forecast_series_future,
+    )
+
+    """
+    Fit a SARIMA(1,1,1)(1,1,1,12) model, forecast test set and future_steps.
+    Plot test and future forecasts with trend lines across entire dataset
     """
     # ============================
     # Forecast Test Set
@@ -535,7 +777,7 @@ def run_sarima(train_data, test_data, test_index, full_data, future_steps=6):
         metrics_test = {"MAE": np.nan, "RMSE": np.nan, "MAPE": np.nan}
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
     plt.figure(figsize=(12, 6))
     plt.plot(train_data.index, train_data.values, label="Train", color="blue")
@@ -586,10 +828,19 @@ def run_sarima(train_data, test_data, test_index, full_data, future_steps=6):
         )
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
     plt.figure(figsize=(12, 6))
     plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+
+    # Compute fitted values over historical data
+    fitted_full_data = results_full.predict(
+        start=full_data.index[0], end=full_data.index[-1]
+    )
+
+    plt.plot(
+        full_data.index, fitted_full_data.values, label="Fitted Trend", color="red"
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
@@ -615,7 +866,144 @@ def run_holt_winters(train_data, test_data, test_index, full_data, future_steps=
     """
     Fit Holt-Winters (additive trend, additive seasonality, period=12).
     Forecast test set and future_steps.
-    Plot test and future forecasts
+    Plot test and future forecasts with trend lines across entire dataset.
+    """
+    # ============================
+    # Forecast Test Set
+    # ============================
+    try:
+        # Fit Holt-Winters model on training data
+        hw_model = ExponentialSmoothing(
+            train_data, trend="add", seasonal="add", seasonal_periods=12
+        )
+        hw_fit = hw_model.fit()
+
+        # Forecast for the test set
+        forecast_vals_test = hw_fit.forecast(steps=len(test_data))
+        forecast_series_test = pd.Series(forecast_vals_test.values, index=test_index)
+
+        # Get in-sample fitted values for training data
+        fitted_train = hw_fit.fittedvalues
+
+        # Forecasted test set as part of the trend line
+        fitted_test = forecast_series_test
+
+        # Combine fitted_train and fitted_test for a continuous trend line
+        fitted_full_test = pd.concat([fitted_train, fitted_test])
+
+        # Compute accuracy metrics for the test set
+        metrics_test = forecast_accuracy_metrics(
+            test_data.values, forecast_series_test.values
+        )
+
+        print("=== Holt-Winters (Additive) ===")
+        print("Forecasting Test Set:")
+        print(f"MAE:  {metrics_test['MAE']:.2f}")
+        print(f"RMSE: {metrics_test['RMSE']:.2f}")
+        print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
+    except Exception as e:
+        print("=== Holt-Winters (Additive) ===")
+        print("Holt-Winters failed during test set forecasting:", e, "\n")
+        forecast_series_test = pd.Series([np.nan] * len(test_data), index=test_index)
+        metrics_test = {"MAE": np.nan, "RMSE": np.nan, "MAPE": np.nan}
+        fitted_full_test = pd.Series(
+            [np.nan] * len(train_data) + [np.nan] * len(test_data),
+            index=train_data.index.append(test_data.index),
+        )
+
+    # ============================
+    # Plot Test Set Forecast with Trend Line
+    # ============================
+    plt.figure(figsize=(12, 6))
+    plt.plot(train_data.index, train_data.values, label="Train", color="blue")
+    plt.plot(test_data.index, test_data.values, label="Test", color="orange")
+    plt.plot(
+        fitted_full_test.index,
+        fitted_full_test.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
+    plt.title("Holt-Winters Forecast - Test Set")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # ============================
+    # Forecast Future Set
+    # ============================
+    try:
+        # Refit Holt-Winters model on the entire dataset (train + test)
+        hw_model_full = ExponentialSmoothing(
+            full_data, trend="add", seasonal="add", seasonal_periods=12
+        )
+        hw_fit_full = hw_model_full.fit()
+
+        # Get fitted values for the entire historical data
+        fitted_full_data = hw_fit_full.fittedvalues
+
+        # Forecast future_steps ahead
+        forecast_vals_future = hw_fit_full.forecast(steps=future_steps)
+        future_dates = pd.date_range(
+            full_data.index[-1] + pd.offsets.MonthEnd(1), periods=future_steps, freq="M"
+        )
+        forecast_series_future = pd.Series(
+            forecast_vals_future.values, index=future_dates
+        )
+    except Exception as e:
+        print("Holt-Winters failed during future forecasting:", e)
+        forecast_series_future = pd.Series(
+            [np.nan] * future_steps,
+            index=pd.date_range(
+                full_data.index[-1] + pd.offsets.MonthEnd(1),
+                periods=future_steps,
+                freq="M",
+            ),
+        )
+        fitted_full_data = pd.Series([np.nan] * len(full_data), index=full_data.index)
+
+    # ============================
+    # Plot Future Forecast with Trend Line
+    # ============================
+    plt.figure(figsize=(12, 6))
+    plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+
+    # Plot fitted trend line over historical data
+    plt.plot(
+        fitted_full_data.index,
+        fitted_full_data.values,
+        label="Fitted Trend",
+        color="red",
+        linestyle="--",
+    )
+
+    # Plot future forecast
+    plt.plot(
+        forecast_series_future.index,
+        forecast_series_future.values,
+        label="Forecast (Holt-Winters - Future)",
+        color="green",
+        marker="o",
+    )
+    plt.title("Holt-Winters Forecast - 6 Months Future")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return (
+        hw_fit_full if "hw_fit_full" in locals() else None,
+        metrics_test,
+        forecast_series_future,
+    )
+
+    """
+    Fit Holt-Winters (additive trend, additive seasonality, period=12).
+    Forecast test set and future_steps.
+    Plot test and future forecasts with trend lines across entire dataset
     """
     # ============================
     # Forecast Test Set
@@ -645,7 +1033,7 @@ def run_holt_winters(train_data, test_data, test_index, full_data, future_steps=
         metrics_test = {"MAE": np.nan, "RMSE": np.nan, "MAPE": np.nan}
 
     # ============================
-    # Plot Test Set Forecast
+    # Plot Test Set Forecast with Trend Line
     # ============================
     plt.figure(figsize=(12, 6))
     plt.plot(train_data.index, train_data.values, label="Train", color="blue")
@@ -692,10 +1080,17 @@ def run_holt_winters(train_data, test_data, test_index, full_data, future_steps=
         )
 
     # ============================
-    # Plot Future Forecast
+    # Plot Future Forecast with Trend Line
     # ============================
     plt.figure(figsize=(12, 6))
     plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+
+    # Compute fitted values over historical data
+    fitted_full_data = hw_fit_full.fittedvalues
+
+    plt.plot(
+        full_data.index, fitted_full_data.values, label="Fitted Trend", color="red"
+    )
     plt.plot(
         forecast_series_future.index,
         forecast_series_future.values,
