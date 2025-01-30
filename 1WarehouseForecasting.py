@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
+from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -767,6 +768,151 @@ def run_seasonal_regression(
     return model, metrics_test, forecast_series_future
 
 
+def run_arima(train_data, test_data, test_index, full_data, future_steps=6):
+    """
+    Fit an ARIMA(p,d,q) model, forecast test set and future_steps.
+    Plot test and future forecasts with trend lines across entire dataset.
+
+    Parameters:
+        train_data (Series): Training time series data.
+        test_data (Series): Test time series data.
+        test_index (DatetimeIndex): Datetime index for the test data.
+        full_data (Series): Full time series data (train + test).
+        future_steps (int): Number of future periods to forecast.
+
+    Returns:
+        tuple: (fitted_model_full, metrics_test, forecast_series_future)
+    """
+    # ============================
+    # Forecast Test Set
+    # ============================
+    try:
+        # Fit ARIMA model on training data
+        # You might need to adjust (p,d,q) based on your data's ACF and PACF plots
+        arima_order = (1, 1, 1)  # Example order; consider tuning
+        model = ARIMA(train_data, order=arima_order)
+        results = model.fit()
+
+        # Forecast for the test set
+        forecast_vals_test = results.forecast(steps=len(test_data))
+        forecast_series_test = pd.Series(forecast_vals_test.values, index=test_index)
+
+        # Compute accuracy metrics for test set
+        metrics_test = forecast_accuracy_metrics(
+            test_data.values, forecast_series_test.values
+        )
+
+        print("=== ARIMA (1,1,1) ===")
+        print("Forecasting Test Set:")
+        print(f"MAE:  {metrics_test['MAE']:.2f}")
+        print(f"RMSE: {metrics_test['RMSE']:.2f}")
+        print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
+
+        # ============================
+        # Plot Test Set Forecast with Trend Line
+        # ============================
+        # Get in-sample fitted values for training data
+        fitted_train = results.fittedvalues
+
+        # Combine fitted training values and forecasted test values
+        fitted_full_test = pd.concat([fitted_train, forecast_series_test])
+
+        # Drop the first entry to align with SARIMA approach
+        fitted_full_test = fitted_full_test.iloc[1:]
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(train_data.index, train_data.values, label="Train", color="blue")
+        plt.plot(test_data.index, test_data.values, label="Test", color="orange")
+        plt.plot(
+            fitted_full_test.index,
+            fitted_full_test.values,
+            label="Fitted ARIMA",
+            color="red",
+            linestyle="--",
+        )
+        plt.title("ARIMA Forecast - Test Set")
+        plt.xlabel("Date")
+        plt.ylabel("Demand")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    except Exception as e:
+        print("=== ARIMA (1,1,1) ===")
+        print("ARIMA failed during test set forecasting:", e, "\n")
+        forecast_series_test = pd.Series([np.nan] * len(test_data), index=test_index)
+        metrics_test = {"MAE": np.nan, "RMSE": np.nan, "MAPE": np.nan}
+        fitted_full_test = pd.Series(
+            [np.nan] * (len(train_data) + len(test_data)),
+            index=train_data.index.append(test_data.index),
+        )
+
+    # ============================
+    # Forecast Future Set
+    # ============================
+    try:
+        # Refit ARIMA model on the entire dataset (train + test)
+        model_full = ARIMA(full_data, order=arima_order)
+        results_full = model_full.fit()
+
+        # Forecast future_steps ahead
+        forecast_vals_future = results_full.forecast(steps=future_steps)
+        future_dates = pd.date_range(
+            full_data.index[-1] + pd.offsets.MonthEnd(1), periods=future_steps, freq="M"
+        )
+        forecast_series_future = pd.Series(
+            forecast_vals_future.values, index=future_dates
+        )
+
+        # Get fitted values for the entire historical data
+        fitted_full_data = results_full.fittedvalues
+        fitted_full_data = fitted_full_data.iloc[1:]  # Drop the first entry
+
+    except Exception as e:
+        print("ARIMA failed during future forecasting:", e)
+        forecast_series_future = pd.Series(
+            [np.nan] * future_steps,
+            index=pd.date_range(
+                full_data.index[-1] + pd.offsets.MonthEnd(1),
+                periods=future_steps,
+                freq="M",
+            ),
+        )
+        fitted_full_data = pd.Series([np.nan] * len(full_data), index=full_data.index)
+
+    # ============================
+    # Plot Future Forecast with Trend Line
+    # ============================
+    plt.figure(figsize=(12, 6))
+    plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        fitted_full_data.index,
+        fitted_full_data.values,
+        label="Fitted ARIMA",
+        color="red",
+        linestyle="--",
+    )
+    plt.plot(
+        forecast_series_future.index,
+        forecast_series_future.values,
+        label="Forecast (ARIMA - Future)",
+        color="green",
+        marker="o",
+    )
+    plt.title("ARIMA Forecast - 6 Months Future")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return (
+        results_full if "results_full" in locals() else None,
+        metrics_test,
+        forecast_series_future,
+    )
+
+
 def run_sarima(train_data, test_data, test_index, full_data, future_steps=6):
     """
     Fit a SARIMA(1,1,1)(1,1,1,12) model, forecast test set and future_steps.
@@ -854,6 +1000,8 @@ def run_sarima(train_data, test_data, test_index, full_data, future_steps=6):
 
         # Get fitted values for the entire historical data
         fitted_full_data = results_full.fittedvalues
+        # drop first entry
+        fitted_full_data = results_full.fittedvalues.iloc[1:]
 
         # Forecast future_steps ahead
         forecast_vals_future = results_full.forecast(steps=future_steps)
@@ -1343,12 +1491,71 @@ def main():
     model_seasonal, metrics_seasonal_test, forecast_seasonal_future = (
         run_seasonal_regression(train_data, test_data, test_index, df_monthly)
     )
+    model_arima, metrics_arima_test, forecast_arima_future = run_arima(
+        train_data, test_data, test_index, df_monthly
+    )
     model_sarima, metrics_sarima_test, forecast_sarima_future = run_sarima(
         train_data, test_data, test_index, df_monthly
     )
     model_hw, metrics_hw_test, forecast_hw_future = run_holt_winters(
         train_data, test_data, test_index, df_monthly
     )
+
+    # ================================
+    # Compare Model Performance
+    # ================================
+    performance = pd.DataFrame(
+        {
+            "Model": [
+                "Linear Regression",
+                "Exponential Regression",
+                "Polynomial Regression",
+                "Seasonality Only Regression",
+                "Seasonality + Trend Regression",
+                "ARIMA",
+                "SARIMA",
+                "Holt-Winters",
+            ],
+            "MAE": [
+                metrics_linear_test["MAE"],
+                metrics_exp_test["MAE"],
+                metrics_poly_test["MAE"],
+                metrics_seasonal_only_test["MAE"],
+                metrics_seasonal_test["MAE"],
+                metrics_arima_test["MAE"],
+                metrics_sarima_test["MAE"],
+                metrics_hw_test["MAE"],
+            ],
+            "RMSE": [
+                metrics_linear_test["RMSE"],
+                metrics_exp_test["RMSE"],
+                metrics_poly_test["RMSE"],
+                metrics_seasonal_only_test["RMSE"],
+                metrics_seasonal_test["RMSE"],
+                metrics_arima_test["RMSE"],
+                metrics_sarima_test["RMSE"],
+                metrics_hw_test["RMSE"],
+            ],
+            "MAPE": [
+                metrics_linear_test["MAPE"],
+                metrics_exp_test["MAPE"],
+                metrics_poly_test["MAPE"],
+                metrics_seasonal_only_test["MAPE"],
+                metrics_seasonal_test["MAPE"],
+                metrics_arima_test["MAPE"],
+                metrics_sarima_test["MAPE"],
+                metrics_hw_test["MAPE"],
+            ],
+        }
+    )
+
+    # get rid of scientific notation in performance table
+    performance["MAE"] = performance["MAE"].apply(lambda x: f"{x:.2f}")
+    performance["RMSE"] = performance["RMSE"].apply(lambda x: f"{x:.2f}")
+    performance["MAPE"] = performance["MAPE"].apply(lambda x: f"{x:.2f}%")
+
+    print("\n=== Model Performance Comparison ===")
+    print(performance)
 
 
 if __name__ == "__main__":
