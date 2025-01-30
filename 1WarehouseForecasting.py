@@ -423,6 +423,179 @@ def run_polynomial_regression(
     return model_full, metrics_test, forecast_series_future
 
 
+def run_seasonality_only_regression(
+    train_data, test_data, test_index, full_data, future_steps=6
+):
+    """
+    Creates monthly dummies without a trend: Demand ~ month_dummies
+    Forecasts test set and future_steps.
+    Plots test and future forecasts with trend lines across entire dataset
+    """
+    # ============================
+    # Forecast Test Set
+    # ============================
+    df_reg = train_data.reset_index().copy()
+    df_reg["month"] = df_reg["Date"].dt.month.astype("category")
+    df_reg_dummies = pd.get_dummies(df_reg, columns=["month"], drop_first=True)
+
+    # Build formula: Demand ~ month_2 + month_3 + ...
+    month_cols = [c for c in df_reg_dummies.columns if c.startswith("month_")]
+    formula = "Demand ~ " + " + ".join(month_cols)
+
+    # Fit model
+    model = smf.ols(formula, data=df_reg_dummies).fit()
+
+    # Prepare future for test set
+    future_df_test = pd.DataFrame(
+        {
+            "Date": test_index,
+            "month": test_index.month.astype("category"),
+        }
+    )
+    future_df_test_dummies = pd.get_dummies(
+        future_df_test, columns=["month"], drop_first=True
+    )
+
+    # Ensure all month columns exist
+    for col in month_cols:
+        if col not in future_df_test_dummies:
+            future_df_test_dummies[col] = 0
+
+    # Align columns
+    used_cols = df_reg_dummies.columns.drop(["Date", "Demand"])
+    future_df_test_dummies = future_df_test_dummies.reindex(
+        columns=used_cols, fill_value=0
+    )
+
+    # Forecast for test set
+    forecast_vals_test = model.predict(future_df_test_dummies)
+    forecast_series_test = pd.Series(forecast_vals_test.values, index=test_index)
+
+    # Compute metrics for test set
+    metrics_test = forecast_accuracy_metrics(
+        test_data.values, forecast_series_test.values
+    )
+
+    print("=== Seasonality Only Regression ===")
+    print("Forecasting Test Set:")
+    print(f"MAE:  {metrics_test['MAE']:.2f}")
+    print(f"RMSE: {metrics_test['RMSE']:.2f}")
+    print(f"MAPE: {metrics_test['MAPE']:.2f}%\n")
+
+    # ============================
+    # Plot Test Set Forecast with Seasonality Only
+    # ============================
+    # Predict on train data for trend line
+    fitted_train = model.predict(df_reg_dummies)
+
+    # Predict on test data for trend line
+    fitted_test = model.predict(future_df_test_dummies)
+
+    # Combine train and test fitted values
+    fitted_full = pd.concat(
+        [
+            pd.Series(fitted_train.values, index=train_data.index),
+            pd.Series(fitted_test.values, index=test_data.index),
+        ]
+    )
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(train_data.index, train_data.values, label="Train", color="blue")
+    plt.plot(test_data.index, test_data.values, label="Test", color="orange")
+    plt.plot(
+        fitted_full.index,
+        fitted_full.values,
+        label="Fitted Seasonality",
+        color="red",
+        linestyle="--",
+    )
+    plt.title("Seasonality Only Regression Forecast - Test Set")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # ============================
+    # Forecast Future Set
+    # ============================
+    # Refit model on full data
+    df_full = full_data.reset_index().copy()
+    df_full["month"] = df_full["Date"].dt.month.astype("category")
+    df_full_dummies = pd.get_dummies(df_full, columns=["month"], drop_first=True)
+
+    # Ensure all month columns exist
+    for col in month_cols:
+        if col not in df_full_dummies:
+            df_full_dummies[col] = 0
+
+    # Align columns
+    future_df_future = pd.DataFrame(
+        {
+            "Date": pd.date_range(
+                full_data.index[-1] + pd.offsets.MonthEnd(1),
+                periods=future_steps,
+                freq="M",
+            ),
+            "month": pd.date_range(
+                full_data.index[-1] + pd.offsets.MonthEnd(1),
+                periods=future_steps,
+                freq="M",
+            ).month.astype("category"),
+        }
+    )
+    future_df_future_dummies = pd.get_dummies(
+        future_df_future, columns=["month"], drop_first=True
+    )
+
+    # Ensure all month columns exist
+    for col in month_cols:
+        if col not in future_df_future_dummies:
+            future_df_future_dummies[col] = 0
+
+    # Align columns
+    future_df_future_dummies = future_df_future_dummies.reindex(
+        columns=used_cols, fill_value=0
+    )
+
+    # Forecast future
+    forecast_vals_future = model.predict(future_df_future_dummies)
+    forecast_series_future = pd.Series(
+        forecast_vals_future.values, index=future_df_future["Date"]
+    )
+
+    # ============================
+    # Plot Future Forecast with Seasonality Only
+    # ============================
+    # Predict on full data for trend line
+    fitted_full_data = model.predict(df_full_dummies)
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(full_data.index, full_data.values, label="Historical Demand", color="blue")
+    plt.plot(
+        full_data.index,
+        fitted_full_data.values,
+        label="Fitted Seasonality",
+        color="red",
+        linestyle="--",
+    )
+    plt.plot(
+        forecast_series_future.index,
+        forecast_series_future.values,
+        label="Forecast (Seasonality Only - Future)",
+        color="green",
+        marker="o",
+    )
+    plt.title("Seasonality Only Regression Forecast - 6 Months Future")
+    plt.xlabel("Date")
+    plt.ylabel("Demand")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return model, metrics_test, forecast_series_future
+
+
 def run_seasonal_regression(
     train_data, test_data, test_index, full_data, future_steps=6
 ):
@@ -1166,6 +1339,9 @@ def main():
     )
     model_poly, metrics_poly_test, forecast_poly_future = run_polynomial_regression(
         train_data, test_data, test_index, df_monthly
+    )
+    model_seasonal_only, metrics_seasonal_only_test, forecast_seasonal_only_future = (
+        run_seasonality_only_regression(train_data, test_data, test_index, df_monthly)
     )
     model_seasonal, metrics_seasonal_test, forecast_seasonal_future = (
         run_seasonal_regression(train_data, test_data, test_index, df_monthly)
