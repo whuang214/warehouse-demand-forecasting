@@ -261,14 +261,16 @@ def display_model_summary(result: LogitResults) -> None:
     print(result.summary())
 
 
-def display_odds_ratios(df_results: pd.DataFrame) -> None:
+def display_sorted_odds_ratios(df_sorted: pd.DataFrame, title: str) -> None:
     """
-    Display the odds ratios and log-odds.
+    Display the sorted odds ratios and log-odds.
 
     Parameters:
-    - df_results: DataFrame containing odds ratios and log-odds.
+    - df_sorted: Sorted DataFrame containing odds ratios and log-odds.
+    - title: Title for the printed table.
     """
-    print(df_results)
+    print(f"\n=== {title} ===")
+    print(df_sorted.to_string(index=False))
 
 
 def main():
@@ -315,12 +317,33 @@ def main():
     # Fit logistic regression model
     result_optimized = fit_logistic_regression(X_optimized, y_optimized)
 
-    # Display model summary
+    # Display model summary (optional)
     display_model_summary(result_optimized)
 
-    # Compute and display odds ratios and log-odds
+    # Compute odds ratios and log-odds
     df_results = compute_odds_ratios(result_optimized, X_optimized.columns.tolist())
-    display_odds_ratios(df_results)
+
+    # Since sorting by Log-Odds and Odds Ratio results in the same order,
+    # we'll display only one sorted table to avoid redundancy.
+
+    # Sort by Log-Odds (Coefficient) descending
+    df_sorted_coeff = df_results.sort_values(
+        by="Log-Odds (Coefficient)", ascending=False
+    )
+    display_sorted_odds_ratios(
+        df_sorted_coeff,
+        "Odds Ratios and Log-Odds Sorted by Log-Odds (Coefficient) Descending",
+    )
+
+    # If you still want to display the second sorted table by Odds Ratio descending,
+    # you can uncomment the following lines. Note that the order will be identical.
+
+    # Sort by Odds Ratio descending
+    # df_sorted_odds = df_results.sort_values(by="Odds Ratio", ascending=False)
+    # display_sorted_odds_ratios(
+    #     df_sorted_odds,
+    #     "Odds Ratios and Log-Odds Sorted by Odds Ratio Descending",
+    # )
 
     # Add predicted probabilities to the original DataFrame
     df_with_pred = add_predictions(df, result_optimized, X_optimized)
